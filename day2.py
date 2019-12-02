@@ -1,22 +1,30 @@
-from utils import get_input, run
-from math import floor
+# pylint: disable=C0114, C0116, C0103
+from utils import get_input, IntcodeComputer
 
-DATA = get_input(2, int)
+DATA = get_input(2)
 
+PROGRAM = list(map(int, DATA[0].split(',')))
+# print(PROGRAM)
 
-def f1():
-    pass
 
 def part1():
     """."""
-    return
+    prog = PROGRAM[:]
+    computer = IntcodeComputer(prog, 12, 2)
+    computer.execute()
+    return prog[0]
 
-def f2():
-    pass
 
 def part2():
-    """."""
-    return
+    for n in range(100):
+        for v in range(100):
+            prog = PROGRAM[:]
+            computer = IntcodeComputer(prog, n, v)
+            computer.execute()
+            if prog[0] == 19690720:
+                return n * 100 + v
+    return None
 
 
-run(part1, part2)
+print(f"\n    Part 1\n    {part1()}")
+print(f"\n    Part 2\n    {part2()}")
