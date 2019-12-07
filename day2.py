@@ -28,3 +28,6 @@ def part2():
 
 print(f"\n    Part 1\n    {part1()}")
 print(f"\n    Part 2\n    {part2()}")
+
+assert part1() == 5290681
+assert part2() == 5741
