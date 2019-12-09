@@ -67,5 +67,6 @@ def part2():
     return min(dist)
 
 
-print(f"\n    Part 1\n    {part1()}")
-print(f"\n    Part 2\n    {part2()}")
+if __name__ == "__main__":
+    print(f"\n    Part 1\n    {part1()}")
+    print(f"\n    Part 2\n    {part2()}")

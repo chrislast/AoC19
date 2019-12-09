@@ -6,12 +6,13 @@ from pathlib import Path
 ###########################
 
 
-def get_input(day, converter=None):
+def get_input(day, converter=None, debug=False):
     """."""
     input_file = Path('input') / (str(day) + ".txt")
     with open(input_file) as f:
         text = list(map(str.strip, f.readlines()))
-    print(f'INPUT_TEXT={text}'[:75] + '...]')
+    if debug:
+        print(f'INPUT_TEXT={text}'[:75] + '...]')
     if converter:
         return list(map(converter, text))
     return text
@@ -27,13 +28,9 @@ ADD = 1
 MUL = 2
 INPUT = 3
 OUTPUT = 4
-# Opcode 5 is jump-if-true: if the first parameter is non-zero, it sets the instruction pointer to the value from the second parameter. Otherwise, it does nothing.
 JIT = 5
-# Opcode 6 is jump-if-false: if the first parameter is zero, it sets the instruction pointer to the value from the second parameter. Otherwise, it does nothing.
 JIF = 6
-# Opcode 7 is less than: if the first parameter is less than the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
 LT = 7
-# Opcode 8 is equals: if the first parameter is equal to the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
 EQ = 8
 EXIT = 99
 
@@ -43,15 +40,37 @@ IMMEDIATE = 1
 
 
 class IntcodeComputer():
-    def __init__(self, program, noun=None, verb=None, input_fifo=None):
-        self.program = program
+    def __init__(self, program=None, noun=None, verb=None, input_fifo=None, signals=False,
+                 debug=False):
+        if program:
+            self.load(program[:])
         if noun is not None:
             self.program[1] = noun
         if verb is not None:
             self.program[2] = verb
         if input_fifo is not None:
             self.input_data = list(reversed(input_fifo))
-        self.output_data = []
+        else:
+            self.input_data = list()
+        self.output_data = list()
+        self.signal = signals
+        self.show_debug = debug
+        self.pc = 0
+        self.done = False
+
+    def debug(self, txt):
+        if self.show_debug:
+            print(txt)
+
+    def add_input(self, val):
+        self.input_data.insert(0, val)
+
+    def get_output(self):
+        return self.output_data[-1]
+
+    def load(self, program):
+        self.program = program
+        self.pc = 0
 
     def set(self, addr, val):
         self.program[self.program[addr]] = val
@@ -59,12 +78,10 @@ class IntcodeComputer():
     def get(self, addr):
         return self.program[self.program[addr]]
 
-    def execute(self):
-        pc = 0
-
+    def execute(self):  # pylint: disable=R0912, R0915
         while True:
             try:
-                opcode = "%08d" % self.program[pc]
+                opcode = "%08d" % self.program[self.pc]
                 inst = int(opcode[-2:])
                 mode = [int(_) for _ in opcode[-3::-1]]
                 p = []
@@ -72,11 +89,11 @@ class IntcodeComputer():
 
                 for n in range(6):
                     if mode[n] == POSITION:
-                        p.append(self.program[self.program[pc+1+n]])
-                        t.append(f"*{self.program[pc+1+n]}({p[-1]})")
+                        p.append(self.program[self.program[self.pc+1+n]])
+                        t.append(f"*{self.program[self.pc+1+n]}({p[-1]})")
                     elif mode[n] == IMMEDIATE:
-                        p.append(self.program[pc+1+n])
-                        t.append(f"*{pc+1+n}({self.program[pc+1+n]})")
+                        p.append(self.program[self.pc+1+n])
+                        t.append(f"*{self.pc+1+n}({self.program[self.pc+1+n]})")
                     else:
                         if inst != 99:
                             assert False, f"Unknown address mode {mode[n]} in {opcode}"
@@ -84,72 +101,77 @@ class IntcodeComputer():
                 pass
 
             if inst == ADD:
-                self.set(pc+3, p[0] + p[1])
-                dbg = f"[{pc}] {opcode} ADD {t[0]}, {t[1]}, {t[2]}"
-                pc += 4
+                self.set(self.pc+3, p[0] + p[1])
+                self.debug(f"[{self.pc}] {opcode} ADD {t[0]}, {t[1]}, {t[2]}")
+                self.pc += 4
 
             elif inst == MUL:
-                self.set(pc+3, p[0] * p[1])
-                dbg = f"[{pc}] {opcode} MUL {t[0]}, {t[1]}, {t[2]}"
-                pc += 4
+                self.set(self.pc+3, p[0] * p[1])
+                self.debug(f"[{self.pc}] {opcode} MUL {t[0]}, {t[1]}, {t[2]}")
+                self.pc += 4
 
             elif inst == INPUT:
-                self.set(pc+1, self.input_data.pop())
-                dbg = f"[{pc}] {opcode} INPUT {t[0]}"
-                pc += 2
+                val = self.input_data.pop()
+                self.set(self.pc+1, val)
+                self.debug(f"[{self.pc}] {opcode} INPUT {t[0]} <- {val}")
+                self.pc += 2
 
             elif inst == OUTPUT:
                 self.output_data.append(p[0])
-                dbg = f"[{pc}] {opcode} OUTPUT {t[0]}"
-                pc += 2
+                self.debug(f"[{self.pc}] {opcode} OUTPUT {t[0]} -> {p[0]}")
+                self.pc += 2
+                if self.signal:
+                    return p[0]
 
             # Opcode 5 is jump-if-true: if the first parameter is non-zero, it sets the instruction
             # pointer to the value from the second parameter. Otherwise, it does nothing.
             elif inst == JIT:
-                dbg = f"[{pc}] {opcode} JIT {t[0]}, {t[1]}"
+                self.debug(f"[{self.pc}] {opcode} JIT {t[0]}, {t[1]}")
                 if p[0]:
-                    pc = p[1]
+                    self.pc = p[1]
                 else:
-                    pc += 3
+                    self.pc += 3
 
             # Opcode 6 is jump-if-false: if the first parameter is zero, it sets the instruction
             # pointer to the value from the second parameter. Otherwise, it does nothing.
             elif inst == JIF:
-                dbg = f"[{pc}] {opcode} JIF {t[0]}, {t[1]}"
+                self.debug(f"[{self.pc}] {opcode} JIF {t[0]}, {t[1]}")
                 if not p[0]:
-                    pc = p[1]
+                    self.pc = p[1]
                 else:
-                    pc += 3
+                    self.pc += 3
 
             # Opcode 7 is less than: if the first parameter is less than the second parameter, it
             # stores 1 in the position given by the third parameter. Otherwise, it stores 0.
             elif inst == LT:
-                dbg = f"[{pc}] {opcode} LT {t[0]}, {t[1]}, {t[2]}"
+                self.debug(f"[{self.pc}] {opcode} LT {t[0]}, {t[1]}, {t[2]}")
                 if p[0] < p[1]:
-                    self.set(pc+3, 1)
+                    self.set(self.pc+3, 1)
                 else:
-                    self.set(pc+3, 0)
-                pc += 4
+                    self.set(self.pc+3, 0)
+                self.pc += 4
 
             # Opcode 8 is equals: if the first parameter is equal to the second parameter, it stores
             # 1 in the position given by the third parameter. Otherwise, it stores 0.
             elif inst == EQ:
-                dbg = f"[{pc}] {opcode} EQ {t[0]}, {t[1]}, {t[2]}"
+                self.debug(f"[{self.pc}] {opcode} EQ {t[0]}, {t[1]}, {t[2]}")
                 if p[0] == p[1]:
-                    self.set(pc+3, 1)
+                    self.set(self.pc+3, 1)
                 else:
-                    self.set(pc+3, 0)
-                pc += 4
+                    self.set(self.pc+3, 0)
+                self.pc += 4
 
             # exit
             elif inst == EXIT:
-                # print(f"[{pc}] {opcode} EXIT")
-                break
+                self.done = True
+                if self.output_data:
+                    self.debug(f"[{self.pc}] {opcode} EXIT ({self.output_data[-1]})")
+                    return self.output_data[-1]
+                self.debug(f"[{self.pc}] {opcode} EXIT")
+                return None
 
             # error
             else:
-                assert False, f"Error PC={pc} ({opcode})\nINST={inst}\nPARAM={p}\nPROGRAM={self.program}"
+                assert False, f"Error PC={self.pc} ({opcode})"
 
-            # print(dbg)
-
-        return self.output_data
+        return None

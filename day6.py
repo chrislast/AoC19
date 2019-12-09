@@ -35,10 +35,6 @@ def part2():
         sanpath = sanpath[4:]
     return int(len(youpath)/4 + len(sanpath)/4)
 
-res = part1()
-print(f"\n    Part 1\n    {res}\n")
-assert res == 268504
-
-res = part2()
-print(f"\n    Part 2\n    {res}\n")
-assert res == 409
+if __name__ == "__main__":
+    print(f"\n    Part 1\n    {part1()}\n")
+    print(f"\n    Part 2\n    {part2()}\n")

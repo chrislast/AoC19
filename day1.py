@@ -20,5 +20,6 @@ def part2():
     return sum([fuel(v) for v in DATA])
 
 
-print(f"\n    Part 1\n    {part1()}")
-print(f"\n    Part 2\n    {part2()}")
+if __name__ == "__main__":
+    print(f"\n    Part 1\n    {part1()}")
+    print(f"\n    Part 2\n    {part2()}")

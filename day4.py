@@ -36,5 +36,6 @@ def part2():
     return len([x for x in range(FIRST, LAST+1) if f2(x)])
 
 
-print(f"\n    Part 1\n    {part1()}")
-print(f"\n    Part 2\n    {part2()}")
+if __name__ == "__main__":
+    print(f"\n    Part 1\n    {part1()}")
+    print(f"\n    Part 2\n    {part2()}")
