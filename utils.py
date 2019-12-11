@@ -32,11 +32,13 @@ JIT = 5
 JIF = 6
 LT = 7
 EQ = 8
+RBO = 9
 EXIT = 99
 
 # parameter modes
 POSITION = 0
 IMMEDIATE = 1
+RELATIVE = 2
 
 
 class IntcodeComputer():
@@ -56,6 +58,7 @@ class IntcodeComputer():
         self.signal = signals
         self.show_debug = debug
         self.pc = 0
+        self.relative_pc = 0
         self.done = False
 
     def debug(self, txt):
@@ -69,17 +72,38 @@ class IntcodeComputer():
         return self.output_data[-1]
 
     def load(self, program):
-        self.program = program
+        self.program = program + [0] * 100000
         self.pc = 0
 
-    def set(self, addr, val):
-        self.program[self.program[addr]] = val
+    def set(self, addr, val, mode):
+        if mode == RELATIVE:
+            self.program[self.program[addr]+self.relative_pc] = val
+        elif mode == POSITION:
+            self.program[self.program[addr]] = val
+        elif mode == IMMEDIATE:
+            self.program[addr] = val
+        else:
+            assert False, "Unknown mode"
 
-    def get(self, addr):
-        return self.program[self.program[addr]]
+    def get(self, addr, mode):
+        if mode == RELATIVE:
+            return self.program[self.program[addr]+self.relative_pc]
+        if mode == POSITION:
+            return self.program[self.program[addr]]
+        if mode == IMMEDIATE:
+            return self.program[addr]
+        assert False, "Unknown mode"
+        return None
 
     def execute(self):  # pylint: disable=R0912, R0915
         while True:
+
+            # self.debug(f"PC={self.pc} RPC={self.relative_pc} " +
+            #            f"*PC={self.program[self.pc]} " +
+            #            f"*P0={self.program[self.pc+1]} " +
+            #            f"*P1={self.program[self.pc+2]} " +
+            #            f"*P2={self.program[self.pc+3]} "
+            #            )
             try:
                 opcode = "%08d" % self.program[self.pc]
                 inst = int(opcode[-2:])
@@ -94,6 +118,9 @@ class IntcodeComputer():
                     elif mode[n] == IMMEDIATE:
                         p.append(self.program[self.pc+1+n])
                         t.append(f"*{self.pc+1+n}({self.program[self.pc+1+n]})")
+                    elif mode[n] == RELATIVE:
+                        p.append(self.program[self.program[self.pc+1+n]+self.relative_pc])
+                        t.append(f"*{self.program[self.pc+1+n]}[{self.relative_pc}]({p[-1]})")
                     else:
                         if inst != 99:
                             assert False, f"Unknown address mode {mode[n]} in {opcode}"
@@ -101,24 +128,26 @@ class IntcodeComputer():
                 pass
 
             if inst == ADD:
-                self.set(self.pc+3, p[0] + p[1])
+                val = p[0] + p[1]
+                self.set(self.pc+3, val, mode[2])
                 self.debug(f"[{self.pc}] {opcode} ADD {t[0]}, {t[1]}, {t[2]}")
                 self.pc += 4
 
             elif inst == MUL:
-                self.set(self.pc+3, p[0] * p[1])
+                val = p[0] * p[1]
+                self.set(self.pc+3, val, mode[2])
                 self.debug(f"[{self.pc}] {opcode} MUL {t[0]}, {t[1]}, {t[2]}")
                 self.pc += 4
 
             elif inst == INPUT:
                 val = self.input_data.pop()
-                self.set(self.pc+1, val)
+                self.set(self.pc+1, val, mode[0])
                 self.debug(f"[{self.pc}] {opcode} INPUT {t[0]} <- {val}")
                 self.pc += 2
 
             elif inst == OUTPUT:
                 self.output_data.append(p[0])
-                self.debug(f"[{self.pc}] {opcode} OUTPUT {t[0]} -> {p[0]}")
+                self.debug(f"[{self.pc}] {opcode} OUTPUT {t[0]} -> {self.output_data}")
                 self.pc += 2
                 if self.signal:
                     return p[0]
@@ -145,21 +174,24 @@ class IntcodeComputer():
             # stores 1 in the position given by the third parameter. Otherwise, it stores 0.
             elif inst == LT:
                 self.debug(f"[{self.pc}] {opcode} LT {t[0]}, {t[1]}, {t[2]}")
-                if p[0] < p[1]:
-                    self.set(self.pc+3, 1)
-                else:
-                    self.set(self.pc+3, 0)
+                val = int(p[0] < p[1])
+                self.set(self.pc+3, val, mode[2])
                 self.pc += 4
 
             # Opcode 8 is equals: if the first parameter is equal to the second parameter, it stores
             # 1 in the position given by the third parameter. Otherwise, it stores 0.
             elif inst == EQ:
                 self.debug(f"[{self.pc}] {opcode} EQ {t[0]}, {t[1]}, {t[2]}")
-                if p[0] == p[1]:
-                    self.set(self.pc+3, 1)
-                else:
-                    self.set(self.pc+3, 0)
+                val = int(p[0] == p[1])
+                self.set(self.pc+3, val, mode[2])
                 self.pc += 4
+
+            # Opcode 9 adjusts the relative base by the value of its only parameter. The relative
+            # base increases (or decreases, if the value is negative) by the value of the parameter.
+            elif inst == RBO:
+                self.relative_pc += p[0]
+                self.debug(f"[{self.pc}] {opcode} RBO {t[0]} -> {self.relative_pc}")
+                self.pc += 2
 
             # exit
             elif inst == EXIT:

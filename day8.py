@@ -7,9 +7,11 @@ HEIGHT = 6
 WIDTH = 25
 LAYER = HEIGHT * WIDTH
 
+
 def p(txt):
-    for i in range(WIDTH):
-        print(txt[i*WIDTH: i*WIDTH+WIDTH].strip())
+    for i in range(HEIGHT):
+        print(txt[i*WIDTH: i*WIDTH+WIDTH])
+
 
 def part1():
     layers = []
@@ -23,6 +25,7 @@ def part1():
             layer = l
     return layer['1']*layer['2']
 
+
 def part2():
     layers = []
     for i in range(int(len(DATA) / LAYER)):
@@ -35,8 +38,10 @@ def part2():
                 msg[i] = "#"
             elif c == '1':
                 msg[i] = "."
-    p(''.join(msg))
+    if __name__ == "__main__":
+        p(''.join(msg))
     return ''.join(msg)
+
 
 if __name__ == "__main__":
     print(f"\n    Part 1\n    {part1()}\n")
