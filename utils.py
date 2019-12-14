@@ -147,7 +147,7 @@ class IntcodeComputer():
 
             elif inst == OUTPUT:
                 self.output_data.append(p[0])
-                self.debug(f"[{self.pc}] {opcode} OUTPUT {t[0]} -> {self.output_data}")
+                self.debug(f"[{self.pc}] {opcode} OUTPUT {t[0]} -> {self.output_data[-1]}")
                 self.pc += 2
                 if self.signal:
                     return p[0]
