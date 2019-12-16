@@ -18,9 +18,28 @@ def get_input(day, converter=None, debug=False):
     return text
 
 
-def sscanf(text, regex):
+def gcd(*args):
+    """."""
+    if len(args) > 2:
+        return gcd(args[0], gcd(*args[1:]))
+    if args[1] == 0:
+        return args[0]
+    return gcd(args[1], args[0] % args[1])
+
+
+def sscanf(text, regex, converters=()):
+    r"""
+    example:
+    sscanf("<x=-7, y=17, z=-11>",
+           "x=(-?\d+), y=(-?\d+), z=(-?\d+)",
+           [int]*3)
+    ==> [-7, 17, -11]
+    """
     _ = re.compile(regex)
-    return _.match(text).groups()
+    res = list(_.search(text).groups())
+    for idx, cnv in enumerate(converters):
+        res[idx] = cnv(res[idx])
+    return tuple(res)
 
 
 # operations
@@ -97,13 +116,6 @@ class IntcodeComputer():
 
     def execute(self):  # pylint: disable=R0912, R0915
         while True:
-
-            # self.debug(f"PC={self.pc} RPC={self.relative_pc} " +
-            #            f"*PC={self.program[self.pc]} " +
-            #            f"*P0={self.program[self.pc+1]} " +
-            #            f"*P1={self.program[self.pc+2]} " +
-            #            f"*P2={self.program[self.pc+3]} "
-            #            )
             try:
                 opcode = "%08d" % self.program[self.pc]
                 inst = int(opcode[-2:])
