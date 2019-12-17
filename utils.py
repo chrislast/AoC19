@@ -1,6 +1,7 @@
 """ Advent of Code 2019 """
 # pylint: disable=C0114, C0115, C0116, C0103
 import re
+import math
 from pathlib import Path
 
 ###########################
@@ -18,13 +19,14 @@ def get_input(day, converter=None, debug=False):
     return text
 
 
-def gcd(*args):
-    """."""
-    if len(args) > 2:
-        return gcd(args[0], gcd(*args[1:]))
-    if args[1] == 0:
-        return args[0]
-    return gcd(args[1], args[0] % args[1])
+def lcm(*args):
+    """find lowest common multiple of all integer arguments
+    lcm(15,20,12) ==> 60
+    """
+    _lcm = int(args[0])
+    for i in args[1:]:
+        _lcm = int(_lcm*i/math.gcd(_lcm, int(i)))
+    return _lcm
 
 
 def sscanf(text, regex, converters=()):

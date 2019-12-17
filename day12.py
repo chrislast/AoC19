@@ -1,6 +1,7 @@
 # pylint: disable=C0114, C0115, C0116, C0103, R0914
 from dataclasses import dataclass
-from utils import get_input, sscanf, gcd
+from utils import get_input, sscanf, lcm
+
 
 @dataclass
 class Position:
@@ -30,6 +31,7 @@ RGX = r"x=(-?\d+), y=(-?\d+), z=(-?\d+)"
 
 def init(data):
     return [Moon(Position(*sscanf(t, RGX, [int]*3)), Velocity(0, 0, 0)) for t in data]
+
 
 def apply_gravity(moons):
     for moon in moons:
@@ -116,7 +118,8 @@ def part2():
             break
         z += 1
         seen.add(s)
-    return int(x*y*z / 16)
+    return lcm(x, y, z)
+
 
 if __name__ == "__main__":
     print(f"\n    Part 1\n    {part1()}\n")
