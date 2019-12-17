@@ -98,11 +98,11 @@ def part2():
 
     computer = IntcodeComputer(PROGRAM, input_fifo=[], signals=True)
     visited = get_coords(computer, {(0, 0): WHITE})
+    pattern = get_map(visited)
     if __name__ == "__main__":
-        pattern = get_map(visited)
         for line in pattern:
             print("".join(line))
-    return len(visited)
+    return ''.join([''.join(line) for line in pattern])
 
 
 if __name__ == "__main__":

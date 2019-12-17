@@ -35,9 +35,9 @@ def part2():
     for l in layers[::-1]:
         for i, c in enumerate(l):
             if c == '0':
-                msg[i] = "#"
+                msg[i] = " "
             elif c == '1':
-                msg[i] = "."
+                msg[i] = "#"
     if __name__ == "__main__":
         p(''.join(msg))
     return ''.join(msg)

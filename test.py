@@ -1,5 +1,5 @@
 import day1, day2, day3, day4, day5, day6, day7, day8, day9, day10
-import day11, day12#, day13, day14, day15, day16, day17, day18, day19, day20
+import day11, day12, day13#, day14, day15, day16, day17, day18, day19, day20
 # import day21, day22, day23, day24, day25
 
 print("Testing Day 1...")
@@ -32,7 +32,12 @@ assert day7.part2() == 15432220
 
 print("Testing Day 8...")
 assert day8.part1() == 1935
-assert day8.part2() == "#..##....#.####.##.#.####.##.#.####.####.##.#.####.####...##.####.##.#.####.####.####.####.##.#.####.##.#.####.####.##.#.#####..##.####....##..##....#"
+assert day8.part2() == (" ##  #### #    #  # #    "
+                        "#  # #    #    #  # #    "
+                        "#    ###  #    #  # #    "
+                        "#    #    #    #  # #    "
+                        "#  # #    #    #  # #    "
+                        " ##  #    ####  ##  #### ")
 
 print("Testing Day 9...")
 assert day9.part1() == 2955820355
@@ -44,15 +49,21 @@ assert day10.part2() == 1119
 
 print("Testing Day 11...")
 assert day11.part1() == 2226
-assert day11.part2() == 250
+assert day11.part2() == ("#  # ###   ##  #    #### #  # #    ####    "
+                         "#  # #  # #  # #       # # #  #    #       "
+                         "#### ###  #    #      #  ##   #    ###     "
+                         "#  # #  # # ## #     #   # #  #    #       "
+                         "#  # #  # #  # #    #    # #  #    #    #  "
+                         "#  # ###   ### #### #### #  # #### #       ")
+
 
 print("Testing Day 12...")
 assert day12.part1() == 7013
 assert day12.part2() == 324618307124784
 
-# print("Testing Day 13...")
-# assert day13.part1() ==
-# assert day13.part2() ==
+print("Testing Day 13...")
+assert day13.part1() == 258
+assert day13.part2() == 12765
 
 # print("Testing Day 14...")
 # assert day14.part1() ==
