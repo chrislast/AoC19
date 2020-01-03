@@ -44,6 +44,54 @@ def sscanf(text, regex, converters=()):
     return tuple(res)
 
 
+def bfs(textmap, start="@", end="o", wall="#", open=" "):
+    """
+    Breadth-first search a text map
+    e.g.
+    textmap = [list('#'*5), ['#','@','','o','#'], list('#'*5)]
+    #####
+    #@ o#
+    #####
+    """
+    # create the search space graph
+    graph = {}
+    startpos = None
+    endpos = None
+    for y in range(len(textmap)):
+        for x in range(len(textmap[0])):
+            if textmap[y][x] != wall:
+                graph[(x, y)] = []
+                for dx, dy in ((x+1,y),(x-1,y),(x,y+1),(x,y-1)):
+                    if textmap[dy][dx] != wall:
+                        graph[(x, y)].append((dx, dy))
+                if textmap[y][x] == start:
+                    startpos = (x, y)
+
+    # find the shortest route from start to end
+    visited = set()
+    queue = [[startpos]]
+    idx = 0
+
+    while True:
+        # add the route destination to visited list
+        x, y = queue[idx][-1]
+        visited.add((x,y))
+
+        # If end reached return route to end
+        if textmap[y][x] == end:
+            return queue[idx]
+
+        # Add new route to queue if "edge" not already visited
+        for pos in graph[(x,y)]:
+            if pos not in visited:
+                queue.append(queue[idx]+[pos])
+        idx += 1
+
+        # If all nodes filled return final node route
+        if idx == len(queue):
+            return queue[-1]
+
+
 # operations
 ADD = 1
 MUL = 2
