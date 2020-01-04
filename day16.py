@@ -26,9 +26,9 @@ def fft(digits, turns):
     return digits
 
 def part1():
-    # digits = [int(n) for n in list(DATA[0])]
+    digits = [int(n) for n in list(DATA[0])]
     # digits = [int(n) for n in list(TEST)]
-    digits = [int(n) for n in list(T1[0])]
+    # digits = [int(n) for n in list(T1[0])]
     res = fft(digits, 100)
     return ''.join([str(n) for n in res[:8]])
 
