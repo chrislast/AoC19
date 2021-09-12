@@ -2,7 +2,12 @@
 # pylint: disable=C0114, C0115, C0116, C0103
 import re
 import math
+import pdb
+import time
 from pathlib import Path
+
+TRACE=pdb.set_trace
+FAILED = PASSED = RAN = SKIPPED = 0
 
 ###########################
 
@@ -91,6 +96,43 @@ def bfs(textmap, start="@", end="o", wall="#", open=" "):
         if idx == len(queue):
             return queue[-1]
 
+def day(fpth):
+    n = int(Path(fpth).parts[-1][3:-3])
+    print(f"####### Day {n} #######")
+    return n
+
+def show_part(func, part):
+    global FAILED, PASSED, RAN, SKIPPED
+    t1 = time.time()
+    ret = func()
+    elapsed = time.time()-t1
+    if ret is None:
+        SKIPPED += 1
+        return
+    RAN += 1
+    expect = None
+    try:
+        expect = func.__defaults__[0]
+    except TypeError:
+        pass
+    if expect:
+        if ret == expect:
+            print(f"\n    Part {part}\n    PASS: {ret}\n    in {elapsed:.3f} seconds")
+            PASSED += 1
+        else:
+            print(f"\n    Part {part}\n    FAIL: {ret} expected {expect}")
+            FAILED += 1
+    else:
+        print(f"\n    Part {part}\n    {ret}\n    in {elapsed:.3f} seconds")
+    if part==2:
+        print("")
+
+def part1(func):
+    show_part(func, 1)
+
+def part2(func):
+    show_part(func, 2)
+
 
 # operations
 ADD = 1
@@ -109,8 +151,7 @@ POSITION = 0
 IMMEDIATE = 1
 RELATIVE = 2
 
-
-class IntcodeComputer():
+class IntcodeComputer:
     def __init__(self, program=None, noun=None, verb=None, input_fifo=None, signals=False,
                  debug=False):
         if program:
@@ -120,15 +161,41 @@ class IntcodeComputer():
         if verb is not None:
             self.program[2] = verb
         if input_fifo is not None:
-            self.input_data = list(reversed(input_fifo))
+            self.input_data = [ord(_) for _ in list(reversed(input_fifo))]
         else:
-            self.input_data = list()
+            self.input_data = self
+            self.data = []
         self.output_data = list()
         self.signal = signals
         self.show_debug = debug
         self.pc = 0
         self.relative_pc = 0
         self.done = False
+        self.stdout = ""
+
+    def pop(self):
+        if not self.data:
+            while True:
+                inp = input("> ")
+                if inp == "d":
+                    self.show_debug = not self.show_debug
+                    print(f"Debug : {self.show_debug}")
+                elif inp.startswith("dump"):
+                    print(f"Memory dump :")
+                    n = inp.split()
+                    if len(n) > 1:
+                        start = int(n[1], 16)
+                        mem = self.program[start:start+16]
+                        print(("{:08x}: " + "{:04x} " * 16).format(start, *mem))
+                    else:
+                        for n in range(0,10000,16):
+                            mem = self.program[n:n+16]
+                            if any(mem):
+                                print(("{:08x}: " + "{:04x} " * 16).format(n, *mem))
+                else:
+                    break
+            self.data = list('\x0a' + inp[::-1])
+        return ord(self.data.pop())
 
     def debug(self, txt):
         if self.show_debug:
@@ -202,15 +269,19 @@ class IntcodeComputer():
                 self.pc += 4
 
             elif inst == INPUT:
+                #import pdb; pdb.set_trace()
                 val = self.input_data.pop()
                 self.set(self.pc+1, val, mode[0])
                 self.debug(f"[{self.pc}] {opcode} INPUT {t[0]} <- {val}")
                 self.pc += 2
 
             elif inst == OUTPUT:
+                self.show_debug = False
                 self.output_data.append(p[0])
                 self.debug(f"[{self.pc}] {opcode} OUTPUT {t[0]} -> {self.output_data[-1]}")
                 self.pc += 2
+                print(chr(p[0]), end="")
+                self.stdout += chr(p[0])
                 if self.signal:
                     return p[0]
 
