@@ -151,9 +151,13 @@ POSITION = 0
 IMMEDIATE = 1
 RELATIVE = 2
 
+# I/O modes
+INT=0
+TEXT=1
+
 class IntcodeComputer:
     def __init__(self, program=None, noun=None, verb=None, input_fifo=None, signals=False,
-                 debug=False):
+                 debug=False, mode=INT):
         if program:
             self.load(program[:])
         if noun is not None:
@@ -161,7 +165,10 @@ class IntcodeComputer:
         if verb is not None:
             self.program[2] = verb
         if input_fifo is not None:
-            self.input_data = [ord(_) for _ in list(reversed(input_fifo))]
+            if mode == TEXT:
+                self.input_data = [ord(_) for _ in list(reversed(input_fifo))]
+            else:
+                self.input_data = list(reversed(input_fifo))
         else:
             self.input_data = self
             self.data = []
@@ -171,6 +178,7 @@ class IntcodeComputer:
         self.pc = 0
         self.relative_pc = 0
         self.done = False
+        self.mode = mode
         self.stdout = ""
 
     def pop(self):
@@ -194,8 +202,13 @@ class IntcodeComputer:
                                 print(("{:08x}: " + "{:04x} " * 16).format(n, *mem))
                 else:
                     break
-            self.data = list('\x0a' + inp[::-1])
-        return ord(self.data.pop())
+            if self.mode == TEXT:
+                self.data = list('\x0a' + inp[::-1])
+            else:
+                self.data = [int(inp)]
+        if self.mode == TEXT:
+            return ord(self.data.pop())
+        return self.data.pop()
 
     def debug(self, txt):
         if self.show_debug:
@@ -280,8 +293,9 @@ class IntcodeComputer:
                 self.output_data.append(p[0])
                 self.debug(f"[{self.pc}] {opcode} OUTPUT {t[0]} -> {self.output_data[-1]}")
                 self.pc += 2
-                print(chr(p[0]), end="")
-                self.stdout += chr(p[0])
+                if self.mode == TEXT:
+                    print(chr(p[0]), end="")
+                    self.stdout += chr(p[0])
                 if self.signal:
                     return p[0]
 
