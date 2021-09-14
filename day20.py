@@ -112,6 +112,37 @@ def bfs_img_with_tmap(img, tmap):
         if not queue:
             return -1
 
+DIGITS = [
+    [" ### ","#   #","#  ##","# # #","##  #"," ### ","     ",],
+    ["  #  "," ##  ","  #  ","  #  ","  #  "," ### ","     ",],
+    [" ### ","#   #","   # ","  #  "," #   ","#####","     ",],
+    ["#####","   # ","  #  ","   # ","#   #"," ### ","     ",],
+    ["   # ","  ## "," # # ","#####","   # ","   # ","     ",],
+    ["#####","#    ","#### ","    #","#   #"," ### ","     ",],
+    [" ### ","#    ","#### ","#   #","#   #"," ### ","     ",],
+    ["#####","    #","   # ","  #  ","  #  ","  #  ","     ",],
+    [" ### ","#   #"," ### ","#   #","#   #"," ### ","     ",],
+    [" ### ","#   #","#   #"," ####","    #"," ### ","     ",],
+]
+
+def label(img, layer):
+    """only required for visualisation"""
+    a = DIGITS[layer // 100 % 10]
+    b = DIGITS[layer // 10 % 10]
+    c = DIGITS[layer % 10]
+    for y, row in enumerate(a):
+        for x, char in enumerate(row):
+            if char=="#":
+                img.putpixel((x+50,y+50), VISITED)
+    for y, row in enumerate(b):
+        for x, char in enumerate(row):
+            if char=="#":
+                img.putpixel((x+56,y+50), VISITED)
+    for y, row in enumerate(c):
+        for x, char in enumerate(row):
+            if char=="#":
+                img.putpixel((x+62,y+50), VISITED)
+
 def bfs_img_with_tmap_3d(img, tmap):
     """
     Breadth-first search image with teleports multi-dimensional
@@ -132,6 +163,7 @@ def bfs_img_with_tmap_3d(img, tmap):
             if outer(*portal):
                 visited[0].add(portal)
                 imgs[0].putpixel(portal, WALL)
+    label(imgs[0],0)
 
     def add_layer():
         """create a new lower layer with no exits"""
@@ -140,6 +172,7 @@ def bfs_img_with_tmap_3d(img, tmap):
         # wall off lower layer exits
         imgs[-1].putpixel(tmap["AA"], WALL)
         imgs[-1].putpixel(tmap["ZZ"], WALL)
+        label(imgs[-1], d) # just for fun
 
     while True:
         # add the step to visited list
@@ -150,6 +183,7 @@ def bfs_img_with_tmap_3d(img, tmap):
 
         # If end reached return steps to end
         if (x,y) == end:
+            imgs[0].save("images/day20p2.gif", append_images=imgs[1:], save_all=True, duration=100, loop=1, palette=PALETTE)
             return n
 
         # Add new routes to queue
@@ -162,6 +196,9 @@ def bfs_img_with_tmap_3d(img, tmap):
                 if imgs[d].getpixel((x,yy)) == DOT:
                     queue.append((n+1,d,x,yy))
         if (x,y) in tmap:
+            # optimisation! don't descend deeper than max portals
+            if d > len(tmap):
+                continue
             if outer(x,y):
                 if tmap[(x,y)] not in visited[d-1]:
                     queue.append((n+1,d-1,*tmap[(x,y)]))
