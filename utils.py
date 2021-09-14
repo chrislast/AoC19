@@ -12,11 +12,14 @@ FAILED = PASSED = RAN = SKIPPED = 0
 ###########################
 
 
-def get_input(day, converter=None, debug=False):
+def get_input(day, converter=None, debug=False, strip=True):
     """."""
     input_file = Path('input') / (str(day) + ".txt")
     with open(input_file) as f:
-        text = list(map(str.strip, f.readlines()))
+        if strip:
+            text = list(map(str.strip, f.readlines()))
+        else:
+            text = f.readlines()
     if debug:
         print(f'INPUT_TEXT={text}'[:75] + '...]')
     if converter:
