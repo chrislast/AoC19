@@ -22,10 +22,9 @@ py dayxx.py
 
 ## Key Lessons
 
-* Day 19 - Used a monochrome bitmap image to store 10000x10000 booleans good for time, great for visualisation!
-
-* Day 20 - breadth first search with 3 dimensions not much trickier than two - color image for nicer mapping, gif for 3d!
-
-Part 1 ![image info](./images/day20p1.png)
-
-Part 2 ![image info](./images/day20p2.gif)
+Day | Part | Notes
+--- | ---- | -----
+19 | | Used a monochrome bitmap image to store 10000x10000 booleans good for time, great for visualisation!
+20 | | breadth first search with 3 dimensions not much trickier than two - color image for nicer mapping, gif for 3d!
+20 | 1 | ![image info](./images/day20p1.png)
+20 | 2 | ![image info](./images/day20p2.gif)
