@@ -106,9 +106,17 @@ def part2():
 
 ###################################################
 
-# def part1():
-#     """Doesn't work...why??"""
-#     return shuffle2(10007,1,2019,DATA[:])
+def part1():
+    """
+    alternate solution to part1 using shuffle2 methods
+    shuffle2 returns an indexes content not position of n
+    so we need to test each index until we find it"""
+    L = 10007
+    N = 1
+    a,b = parse(L,DATA[:])
+    a,b = polypow(a,b,N,L)
+    x=[(_*a+b)%L for _ in range(L)]
+    return x.index(2019)
 
 if __name__ == "__main__":
     print(f"\n    Part 1\n    {part1()}\n")
