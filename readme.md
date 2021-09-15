@@ -24,8 +24,9 @@ py dayxx.py
 
 Day | Part | Notes
 --- | ---- | -----
-19 | | Used a monochrome bitmap image to store 10000x10000 booleans good for time, great for visualisation!
-20 | | breadth first search with 3 dimensions not much trickier than two - color image for nicer mapping, gif for 3d!
+8  | 2 | ![printout](./images/day8p2.png)
+19 |   | Used a monochrome bitmap image to store 10000x10000 booleans good for time, great for visualisation!
+20 |   | breadth first search with 3 dimensions not much trickier than two - color image for nicer mapping, gif for 3d!
 20 | 1 | ![Final BFS state](./images/day20p1.png)
 20 | 2 | ![Animated final BFS state of all visited layers](./images/day20p2.gif)
 22 | 1 | Slicing a list was easy enough :) Added a solution using part 2 method which needed deconstructing as part1 wants to find a value not return an indexes content

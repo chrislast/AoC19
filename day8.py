@@ -1,6 +1,7 @@
 # pylint: disable=C0114, C0116, C0103
 from collections import Counter
 from utils import get_input
+from PIL import Image
 
 DATA = get_input(8)[0]
 HEIGHT = 6
@@ -27,6 +28,7 @@ def part1():
 
 
 def part2():
+    img = Image.new('1', (WIDTH+2, HEIGHT+2))
     layers = []
     for i in range(int(len(DATA) / LAYER)):
         layers.append(DATA[i*LAYER: i*LAYER+LAYER])
@@ -36,10 +38,13 @@ def part2():
         for i, c in enumerate(l):
             if c == '0':
                 msg[i] = " "
+                img.putpixel((i%WIDTH+1,i//WIDTH+1),0)
             elif c == '1':
                 msg[i] = "#"
+                img.putpixel((i%WIDTH+1,i//WIDTH+1),1)
     if __name__ == "__main__":
         p(''.join(msg))
+    img.save('./images/day8p2.png')
     return ''.join(msg)
 
 
