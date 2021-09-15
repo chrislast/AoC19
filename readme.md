@@ -28,3 +28,5 @@ Day | Part | Notes
 20 | | breadth first search with 3 dimensions not much trickier than two - color image for nicer mapping, gif for 3d!
 20 | 1 | ![image info](./images/day20p1.png)
 20 | 2 | ![image info](./images/day20p2.gif)
+22 | 1 | Slicing a list was easy enough :)
+22 | 2 | Brute force results in MemoryError.  I gave up, this was way above my maths capabilities so I stole a [solution](https://github.com/metalim/metalim.adventofcode.2019.python/blob/master/22_cards_shuffle.ipynb). The concept of turning the whole script into a single linear time function was interesting, but it doesn't work on part1...
