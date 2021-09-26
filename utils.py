@@ -5,6 +5,7 @@ import math
 import pdb
 import time
 from pathlib import Path
+from PIL import Image
 
 TRACE=pdb.set_trace
 FAILED = PASSED = RAN = SKIPPED = 0
@@ -160,14 +161,14 @@ TEXT=1
 
 class IntcodeComputer:
     def __init__(self, program=None, noun=None, verb=None, input_fifo=None, signals=False,
-                 debug=False, mode=INT):
+                 debug=False, mode=INT, non_blocking=False):
         if program:
             self.load(program[:])
         if noun is not None:
             self.program[1] = noun
         if verb is not None:
             self.program[2] = verb
-        if input_fifo is not None:
+        if non_blocking or input_fifo is not None:
             if mode == TEXT:
                 self.input_data = [ord(_) for _ in list(reversed(input_fifo))]
             else:
@@ -183,6 +184,8 @@ class IntcodeComputer:
         self.done = False
         self.mode = mode
         self.stdout = ""
+        self.non_blocking = non_blocking
+        self.idle = 0
 
     def pop(self):
         if not self.data:
@@ -249,111 +252,183 @@ class IntcodeComputer:
 
     def execute(self):  # pylint: disable=R0912, R0915
         while True:
-            try:
-                opcode = "%08d" % self.program[self.pc]
-                inst = int(opcode[-2:])
-                mode = [int(_) for _ in opcode[-3::-1]]
-                p = []
-                t = []
+            self.step()
 
-                for n in range(6):
-                    if mode[n] == POSITION:
-                        p.append(self.program[self.program[self.pc+1+n]])
-                        t.append(f"*{self.program[self.pc+1+n]}({p[-1]})")
-                    elif mode[n] == IMMEDIATE:
-                        p.append(self.program[self.pc+1+n])
-                        t.append(f"*{self.pc+1+n}({self.program[self.pc+1+n]})")
-                    elif mode[n] == RELATIVE:
-                        p.append(self.program[self.program[self.pc+1+n]+self.relative_pc])
-                        t.append(f"*{self.program[self.pc+1+n]}[{self.relative_pc}]({p[-1]})")
-                    else:
-                        if inst != 99:
-                            assert False, f"Unknown address mode {mode[n]} in {opcode}"
-            except IndexError:
-                pass
+    def step(self):
+        try:
+            opcode = "%08d" % self.program[self.pc]
+            inst = int(opcode[-2:])
+            mode = [int(_) for _ in opcode[-3::-1]]
+            p = []
+            t = []
 
-            if inst == ADD:
-                val = p[0] + p[1]
-                self.set(self.pc+3, val, mode[2])
-                self.debug(f"[{self.pc}] {opcode} ADD {t[0]}, {t[1]}, {t[2]}")
-                self.pc += 4
-
-            elif inst == MUL:
-                val = p[0] * p[1]
-                self.set(self.pc+3, val, mode[2])
-                self.debug(f"[{self.pc}] {opcode} MUL {t[0]}, {t[1]}, {t[2]}")
-                self.pc += 4
-
-            elif inst == INPUT:
-                #import pdb; pdb.set_trace()
-                val = self.input_data.pop()
-                self.set(self.pc+1, val, mode[0])
-                self.debug(f"[{self.pc}] {opcode} INPUT {t[0]} <- {val}")
-                self.pc += 2
-
-            elif inst == OUTPUT:
-                self.show_debug = False
-                self.output_data.append(p[0])
-                self.debug(f"[{self.pc}] {opcode} OUTPUT {t[0]} -> {self.output_data[-1]}")
-                self.pc += 2
-                if self.mode == TEXT:
-                    print(chr(p[0]), end="")
-                    self.stdout += chr(p[0])
-                if self.signal:
-                    return p[0]
-
-            # Opcode 5 is jump-if-true: if the first parameter is non-zero, it sets the instruction
-            # pointer to the value from the second parameter. Otherwise, it does nothing.
-            elif inst == JIT:
-                self.debug(f"[{self.pc}] {opcode} JIT {t[0]}, {t[1]}")
-                if p[0]:
-                    self.pc = p[1]
+            for n in range(6):
+                if mode[n] == POSITION:
+                    p.append(self.program[self.program[self.pc+1+n]])
+                    t.append(f"*{self.program[self.pc+1+n]}({p[-1]})")
+                elif mode[n] == IMMEDIATE:
+                    p.append(self.program[self.pc+1+n])
+                    t.append(f"*{self.pc+1+n}({self.program[self.pc+1+n]})")
+                elif mode[n] == RELATIVE:
+                    p.append(self.program[self.program[self.pc+1+n]+self.relative_pc])
+                    t.append(f"*{self.program[self.pc+1+n]}[{self.relative_pc}]({p[-1]})")
                 else:
-                    self.pc += 3
+                    if inst != 99:
+                        assert False, f"Unknown address mode {mode[n]} in {opcode}"
+        except IndexError:
+            pass
 
-            # Opcode 6 is jump-if-false: if the first parameter is zero, it sets the instruction
-            # pointer to the value from the second parameter. Otherwise, it does nothing.
-            elif inst == JIF:
-                self.debug(f"[{self.pc}] {opcode} JIF {t[0]}, {t[1]}")
-                if not p[0]:
-                    self.pc = p[1]
-                else:
-                    self.pc += 3
+        if inst == ADD:
+            val = p[0] + p[1]
+            self.set(self.pc+3, val, mode[2])
+            self.debug(f"[{self.pc}] {opcode} ADD {t[0]}, {t[1]}, {t[2]}")
+            self.pc += 4
 
-            # Opcode 7 is less than: if the first parameter is less than the second parameter, it
-            # stores 1 in the position given by the third parameter. Otherwise, it stores 0.
-            elif inst == LT:
-                self.debug(f"[{self.pc}] {opcode} LT {t[0]}, {t[1]}, {t[2]}")
-                val = int(p[0] < p[1])
-                self.set(self.pc+3, val, mode[2])
-                self.pc += 4
+        elif inst == MUL:
+            val = p[0] * p[1]
+            self.set(self.pc+3, val, mode[2])
+            self.debug(f"[{self.pc}] {opcode} MUL {t[0]}, {t[1]}, {t[2]}")
+            self.pc += 4
 
-            # Opcode 8 is equals: if the first parameter is equal to the second parameter, it stores
-            # 1 in the position given by the third parameter. Otherwise, it stores 0.
-            elif inst == EQ:
-                self.debug(f"[{self.pc}] {opcode} EQ {t[0]}, {t[1]}, {t[2]}")
-                val = int(p[0] == p[1])
-                self.set(self.pc+3, val, mode[2])
-                self.pc += 4
-
-            # Opcode 9 adjusts the relative base by the value of its only parameter. The relative
-            # base increases (or decreases, if the value is negative) by the value of the parameter.
-            elif inst == RBO:
-                self.relative_pc += p[0]
-                self.debug(f"[{self.pc}] {opcode} RBO {t[0]} -> {self.relative_pc}")
-                self.pc += 2
-
-            # exit
-            elif inst == EXIT:
-                self.done = True
-                if self.output_data:
-                    self.debug(f"[{self.pc}] {opcode} EXIT ({self.output_data[-1]})")
-                    return self.output_data[-1]
-                self.debug(f"[{self.pc}] {opcode} EXIT")
-                return None
-
-            # error
+        elif inst == INPUT:
+            if self.non_blocking and not self.input_data:
+                if not self.output_data:
+                    self.idle += 1
+                val = -1
             else:
-                assert False, f"Error PC={self.pc} ({opcode})"
+                val = self.input_data.pop()
+            self.set(self.pc+1, val, mode[0])
+            self.debug(f"[{self.pc}] {opcode} INPUT {t[0]} <- {val}")
+            self.pc += 2
 
-        return None
+        elif inst == OUTPUT:
+            self.idle = 0
+            self.show_debug = False
+            self.output_data.append(p[0])
+            self.debug(f"[{self.pc}] {opcode} OUTPUT {t[0]} -> {self.output_data[-1]}")
+            self.pc += 2
+            if self.mode == TEXT:
+                print(chr(p[0]), end="")
+                self.stdout += chr(p[0])
+            if self.signal:
+                return p[0]
+
+        # Opcode 5 is jump-if-true: if the first parameter is non-zero, it sets the instruction
+        # pointer to the value from the second parameter. Otherwise, it does nothing.
+        elif inst == JIT:
+            self.debug(f"[{self.pc}] {opcode} JIT {t[0]}, {t[1]}")
+            if p[0]:
+                self.pc = p[1]
+            else:
+                self.pc += 3
+
+        # Opcode 6 is jump-if-false: if the first parameter is zero, it sets the instruction
+        # pointer to the value from the second parameter. Otherwise, it does nothing.
+        elif inst == JIF:
+            self.debug(f"[{self.pc}] {opcode} JIF {t[0]}, {t[1]}")
+            if not p[0]:
+                self.pc = p[1]
+            else:
+                self.pc += 3
+
+        # Opcode 7 is less than: if the first parameter is less than the second parameter, it
+        # stores 1 in the position given by the third parameter. Otherwise, it stores 0.
+        elif inst == LT:
+            self.debug(f"[{self.pc}] {opcode} LT {t[0]}, {t[1]}, {t[2]}")
+            val = int(p[0] < p[1])
+            self.set(self.pc+3, val, mode[2])
+            self.pc += 4
+
+        # Opcode 8 is equals: if the first parameter is equal to the second parameter, it stores
+        # 1 in the position given by the third parameter. Otherwise, it stores 0.
+        elif inst == EQ:
+            self.debug(f"[{self.pc}] {opcode} EQ {t[0]}, {t[1]}, {t[2]}")
+            val = int(p[0] == p[1])
+            self.set(self.pc+3, val, mode[2])
+            self.pc += 4
+
+        # Opcode 9 adjusts the relative base by the value of its only parameter. The relative
+        # base increases (or decreases, if the value is negative) by the value of the parameter.
+        elif inst == RBO:
+            self.relative_pc += p[0]
+            self.debug(f"[{self.pc}] {opcode} RBO {t[0]} -> {self.relative_pc}")
+            self.pc += 2
+
+        # exit
+        elif inst == EXIT:
+            self.done = True
+            if self.output_data:
+                self.debug(f"[{self.pc}] {opcode} EXIT ({self.output_data[-1]})")
+                return self.output_data[-1]
+            self.debug(f"[{self.pc}] {opcode} EXIT")
+            return None
+
+        # error
+        else:
+            assert False, f"Error PC={self.pc} ({opcode})"
+
+
+import random
+
+class Map:
+    def __init__(self, data, colorseed=0):
+        self.height = len(data)
+        self.width = max([len(_) for _ in data])
+        self.img = Image.new("P", (self.width,self.height))
+        for y in range(self.height):
+            for x in range(self.width):
+                try:
+                    self.set((x,y),data[y][x])
+                except IndexError:
+                    continue
+        random.seed(colorseed)
+        #             black  + white + 254 randomized RGB colours
+        self.palette=[0,0,0] + [255,255,255] + [random.randint(0,255) for _ in range(254*3)]
+        self.img.putpalette(self.palette)
+
+    def ival(self, val):
+        # weirdly True is an int so test bool first!
+        if isinstance(val, bool):
+            return int(val)
+        elif isinstance(val, int):
+            return val
+        elif isinstance(val, str) and len(val)==1:
+            return ord(val)
+        else:
+            raise ValueError(f"{val}")
+
+    def set(self, pos, val):
+        """set pixel accepts int, bool, char"""
+        val = self.ival(val)
+        self.img.putpixel(pos,val)
+
+    def get(self, pos):
+        """get *integer* value
+        cast it back to char or bool if needed"""
+        return self.img.getpixel(pos)
+
+    def show(self):
+        """show the PIL image"""
+        self.img.show()
+
+    def save(self, *args, **kwargs):
+        """save the PIL image"""
+        self.img.save(*args,**kwargs)
+
+    def setcolour(self, val, rgb):
+        """
+        set a byte/bool/char representation to
+        a fixed RGB value
+        e.g.
+          self.setcolour("#",(255,0,0))
+          self.setcolour(".",(0,0,255))
+        """
+        val = self.ival(val)
+        r, g, b = rgb
+        self.palette[val*3+0] = r
+        self.palette[val*3+1] = g
+        self.palette[val*3+2] = b
+        self.img.putpalette(self.palette)
+
+
+ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
