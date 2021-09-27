@@ -409,11 +409,19 @@ class Map:
 
     def show(self):
         """show the PIL image"""
-        self.img.show()
+        x,y = self.img.size
+        while x<=200 and y<=200:
+            x*=2
+            y*=2
+        self.img.copy().resize((x,y)).show()
 
     def save(self, *args, **kwargs):
         """save the PIL image"""
-        self.img.save(*args,**kwargs)
+        x,y = self.img.size
+        while x<=200 and y<=200:
+            x*=2
+            y*=2
+        self.img.copy().resize((x,y)).save(*args,**kwargs)
 
     def setcolour(self, val, rgb):
         """
