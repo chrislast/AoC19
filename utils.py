@@ -252,7 +252,9 @@ class IntcodeComputer:
 
     def execute(self):  # pylint: disable=R0912, R0915
         while True:
-            self.step()
+            ans = self.step()
+            if ans:
+                return ans
 
     def step(self):
         try:
@@ -307,7 +309,7 @@ class IntcodeComputer:
             self.output_data.append(p[0])
             self.debug(f"[{self.pc}] {opcode} OUTPUT {t[0]} -> {self.output_data[-1]}")
             self.pc += 2
-            if self.mode == TEXT:
+            if self.mode == TEXT and p[0] <= 255:
                 print(chr(p[0]), end="")
                 self.stdout += chr(p[0])
             if self.signal:
@@ -361,7 +363,7 @@ class IntcodeComputer:
                 self.debug(f"[{self.pc}] {opcode} EXIT ({self.output_data[-1]})")
                 return self.output_data[-1]
             self.debug(f"[{self.pc}] {opcode} EXIT")
-            return None
+            return -1
 
         # error
         else:
