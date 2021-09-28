@@ -31,3 +31,5 @@ Day | Part | Notes
 20 | 2 | ![Animated final BFS state of all visited layers](./images/day20p2.gif)
 22 | 1 | Slicing a list was easy enough :) Added a solution using part 2 method which needed deconstructing as part1 wants to find a value not return an indexes content
 22 | 2 | Brute force results in MemoryError.  I gave up, this was way above my maths capabilities so I stole a [solution](https://github.com/metalim/metalim.adventofcode.2019.python/blob/master/22_cards_shuffle.ipynb). The concept of turning the whole script into a single linear time function was interesting.
+24 | 1 | ![Final game of life state](./images/day24p1.png)
+24 | 2 | Copying arrays of images then iterating over each pixel takes a long time, if I was restarting this now, I would just keep a ``set`` of bugs as 3-tuple (layer,x,y) and copy the single set instead of the stack of images.  Making the NEIGHbour lookup table was a lot simpler and shorter than trying to define the many rules individually. Finally, I could gif the pile of map images, but there's nothing interesting to see...
